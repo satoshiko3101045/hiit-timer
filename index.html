@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -12,7 +12,7 @@
 body { margin:0; }
 [hidden] { display:none !important; }
 main { width:min(520px,100%); margin:auto; padding:calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom)); }
-h1 { margin:0; font-size:28px; letter-spacing:.06em; }
+h1 { margin:0; font-size:36px; letter-spacing:.06em; }
 .subtitle { color:#aaa; font-size:18px; margin:8px 0 24px; }
 h2 { font-size:24px; margin:20px 0 8px; }
 .secondary { background:#2c2c2e; color:#fff; }
@@ -57,32 +57,32 @@ button:focus-visible,.wheel:focus-visible { outline:3px solid #c4f477; outline-o
 </head>
 <body>
 <main id="app">
-<section id="settings-screen" aria-label="タイマー設定">
+<section id="settings-screen" aria-label="Timer settings">
 <h1 id="settings-title" tabindex="-1">HIIT TIMER</h1>
-<p class="subtitle" id="settings-subtitle">上下にスワイプして時間と回数を設定</p>
-<div class="settings"><div class="field"><label id="pre-label">準備</label><input id="pre" type="hidden" value="30" data-max="60"><div class="picker"><div class="wheel" id="pre-wheel" role="listbox" tabindex="0" aria-labelledby="pre-label"></div><span class="unit" aria-hidden="true">sec</span></div></div>
+<p class="subtitle" id="settings-subtitle">Swipe up or down to set time and reps.</p>
+<div class="settings"><div class="field"><label id="pre-label">PREP</label><input id="pre" type="hidden" value="30" data-max="60"><div class="picker"><div class="wheel" id="pre-wheel" role="listbox" tabindex="0" aria-labelledby="pre-label"></div><span class="unit" aria-hidden="true">sec</span></div></div>
 <div class="field"><label id="work-label">HIIT</label><input id="work" type="hidden" value="30" data-max="60"><div class="picker"><div class="wheel" id="work-wheel" role="listbox" tabindex="0" aria-labelledby="work-label"></div><span class="unit" aria-hidden="true">sec</span></div></div>
 <div class="field"><label id="rest-label">REST</label><input id="rest" type="hidden" value="30" data-max="60"><div class="picker"><div class="wheel" id="rest-wheel" role="listbox" tabindex="0" aria-labelledby="rest-label"></div><span class="unit" aria-hidden="true">sec</span></div></div>
-<div class="field"><label id="post-label">クールダウン</label><input id="post" type="hidden" value="30" data-max="60"><div class="picker"><div class="wheel" id="post-wheel" role="listbox" tabindex="0" aria-labelledby="post-label"></div><span class="unit" aria-hidden="true">sec</span></div></div>
-<div class="field"><label id="reps-label">REP</label><input id="reps" type="hidden" value="6" data-max="20"><div class="picker"><div class="wheel" id="reps-wheel" role="listbox" tabindex="0" aria-labelledby="reps-label"></div><span class="unit" aria-hidden="true">回</span></div></div>
+<div class="field"><label id="post-label">COOLDOWN</label><input id="post" type="hidden" value="30" data-max="60"><div class="picker"><div class="wheel" id="post-wheel" role="listbox" tabindex="0" aria-labelledby="post-label"></div><span class="unit" aria-hidden="true">sec</span></div></div>
+<div class="field"><label id="reps-label">REP</label><input id="reps" type="hidden" value="6" data-max="20"><div class="picker"><div class="wheel" id="reps-wheel" role="listbox" tabindex="0" aria-labelledby="reps-label"></div><span class="unit" aria-hidden="true">reps</span></div></div>
 </div>
-<p class="note">音・振動は端末設定やブラウザの仕様により動作が異なります。画面を表示したまま使うのがおすすめです。</p>
+<!-- <p class="note">Sound and vibration depend on your device and browser. Keep this screen open during your workout.</p> -->
 <div class="launch" id="quick-actions"><button id="start">START</button>
-<button id="open-programs" class="program-link">保存プログラムを見る →</button></div>
+<button id="open-programs" class="program-link">PROGRAMS →</button></div>
 <div id="editor-actions" class="editor-actions" hidden>
-<button id="save-program" class="primary">保存する</button>
-<button id="cancel-program" class="secondary">保存せず戻る</button>
+<button id="save-program" class="primary">SAVE</button>
+<button id="cancel-program" class="secondary">CANCEL</button>
 </div>
 <p id="editor-status" class="status" role="status"></p>
 </section>
-<section id="programs-screen" aria-label="保存プログラム" hidden>
-<button id="back-settings" class="secondary">← その場で設定</button>
-<h2 id="programs-title" tabindex="-1">保存プログラム</h2>
-<p class="subtitle">よく使う設定を3つまで保存</p>
+<section id="programs-screen" aria-label="Saved programs" hidden>
+<button id="back-settings" class="secondary">← QUICK SETUP</button>
+<h2 id="programs-title" tabindex="-1">Saved programs</h2>
+<p class="subtitle">Save up to 3 favorite routines.</p>
 <p id="program-status" class="status" role="status"></p>
 <div id="program-list"></div>
 </section>
-<section id="exercise-screen" aria-label="運動タイマー" hidden>
+<section id="exercise-screen" aria-label="Workout timer" hidden>
 <div class="exercise-heading">HIIT TIMER</div>
 <div class="timer">
 <div class="phase" id="phase" aria-live="polite">READY</div>
@@ -148,7 +148,7 @@ function showSettings(){
   $("settings-screen").hidden=false;
   $("programs-screen").hidden=true;
   $("settings-title").textContent=editingProgram===null ? "HIIT TIMER" : `PROGRAM ${editingProgram+1}`;
-  $("settings-subtitle").textContent=editingProgram===null ? "上下にスワイプして時間と回数を設定" : "時間と回数を選び、保存してください";
+  $("settings-subtitle").textContent=editingProgram===null ? "Swipe up or down to set time and reps." : "Set time and reps, then tap SAVE.";
   $("quick-actions").hidden=editingProgram!==null;
   $("editor-actions").hidden=editingProgram===null;
   $("editor-status").textContent="";
@@ -162,25 +162,25 @@ function renderPrograms(){
     const title=document.createElement("h3"); title.textContent=`PROGRAM ${n+1}`; card.appendChild(title);
     if(settings){
       const summary=document.createElement("dl"); summary.className="program-summary";
-      for(const [id,label] of [["pre","準備"],["work","HIIT"],["rest","REST"],["post","クールダウン"],["reps","REP"]]){
+      for(const [id,label] of [["pre","PREP"],["work","HIIT"],["rest","REST"],["post","COOLDOWN"],["reps","REP"]]){
         const term=document.createElement("dt"), value=document.createElement("dd");
-        term.textContent=label; value.textContent=`${settings[id]}${id==="reps" ? " 回" : " 秒"}`;
+        term.textContent=label; value.textContent=`${settings[id]}${id==="reps" ? " reps" : " sec"}`;
         summary.appendChild(term); summary.appendChild(value);
       }
       card.appendChild(summary);
     } else {
-      const empty=document.createElement("p"); empty.textContent="未設定"; card.appendChild(empty);
+      const empty=document.createElement("p"); empty.textContent="Not set"; card.appendChild(empty);
     }
     const actions=document.createElement("div"); actions.className="program-actions";
     if(settings){
-      const use=document.createElement("button"); use.className="primary"; use.textContent="使う";
-      use.setAttribute("aria-label",`PROGRAM ${n+1}を使う`);
+      const use=document.createElement("button"); use.className="primary"; use.textContent="USE";
+      use.setAttribute("aria-label",`Use PROGRAM ${n+1}`);
       use.addEventListener("click",()=>{
         editingProgram=null; quickSettings={...programs[n]}; showSettings(); applySettings(quickSettings);
       }); actions.appendChild(use);
     }
-    const edit=document.createElement("button"); edit.className="secondary"; edit.textContent=settings ? "編集" : "設定する";
-    edit.setAttribute("aria-label",`PROGRAM ${n+1}を${settings ? "編集" : "設定"}`);
+    const edit=document.createElement("button"); edit.className="secondary"; edit.textContent=settings ? "EDIT" : "SET UP";
+    edit.setAttribute("aria-label",`${settings ? "Edit" : "Set up"} PROGRAM ${n+1}`);
     edit.addEventListener("click",()=>editProgram(n)); actions.appendChild(edit);
     card.appendChild(actions); list.appendChild(card);
   });
@@ -203,20 +203,20 @@ function saveProgram(){
   const updated=programs.map(p=>p ? {...p} : null);
   updated[editingProgram]=currentSettings();
   try { localStorage.setItem("hiit-programs",JSON.stringify({version:2,programs:updated})); }
-  catch(e){ $("editor-status").textContent="保存できませんでした。ブラウザの保存設定をご確認ください。"; return; }
+  catch(e){ $("editor-status").textContent="Could not save. Check your browser storage settings."; return; }
   programs=updated;
-  $("program-status").textContent=`PROGRAM ${editingProgram+1}を保存しました`;
+  $("program-status").textContent=`PROGRAM ${editingProgram+1} saved.`;
   openPrograms(); editingProgram=null;
 }
 function build(){
   sequence=[];
   const pre=val("pre"), post=val("post"), work=val("work"), rest=val("rest"), reps=Math.max(1,val("reps"));
-  if(pre>0) sequence.push({name:"準備",sec:pre,rep:0});
+  if(pre>0) sequence.push({name:"PREP",sec:pre,rep:0});
   for(let r=1;r<=reps;r++){
     sequence.push({name:"HIIT",sec:work,rep:r});
     if(rest>0 && r<reps) sequence.push({name:"REST",sec:rest,rep:r});
   }
-  if(post>0) sequence.push({name:"クールダウン",sec:post,rep:reps});
+  if(post>0) sequence.push({name:"COOLDOWN",sec:post,rep:reps});
 }
 function renderReady(){
   phase.textContent="READY";
@@ -239,7 +239,7 @@ function tone(freq, start, dur, gain=.08, type="sine"){
     o.type = type;
     o.frequency.setValueAtTime(freq, t0);
 
-    // MP3版に近い：ほぼ一定音量 → 最後だけ短く消える
+    // Match the MP3 envelope: steady volume with a short fade-out.
     g.gain.setValueAtTime(gain, t0);
     g.gain.setValueAtTime(gain, Math.max(t0, t0 + dur - fade));
     g.gain.linearRampToValueAtTime(0, t0 + dur);
@@ -274,7 +274,7 @@ function showCurrent(){
   time.textContent=fmt(remaining);
   bar.style.width="0%";
 
-  // 最初のフェーズ開始時だけ鳴らさない
+  // Skip the beep at the start of the first phase.
   if(index > 0) gong();
 }
 function tick(){
@@ -306,7 +306,7 @@ function pause(){
 }
 function finish(){
   clearInterval(ticker); ticker=null; running=false; paused=false; app.classList.remove("running");
-  phase.textContent="FINISH"; time.textContent="0:00"; reptext.textContent="完了"; bar.style.width="100%";
+  phase.textContent="FINISH"; time.textContent="0:00"; reptext.textContent="COMPLETE"; bar.style.width="100%";
   start.textContent="START"; gong(); if(navigator.vibrate) navigator.vibrate([150,100,150]);
   if(wakeLock){ try{wakeLock.release();}catch(e){} wakeLock=null; }
 }
