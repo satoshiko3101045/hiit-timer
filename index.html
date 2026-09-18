@@ -226,9 +226,20 @@ function renderReady(){
 }
 let audioCtx=null;
 function ctx(){
-  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-  if(audioCtx.state==="suspended") audioCtx.resume();
+  if(!audioCtx || audioCtx.state==="closed") audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==="suspended" || audioCtx.state==="interrupted") audioCtx.resume().catch(()=>{});
   return audioCtx;
+}
+// Called synchronously by START/RESUME, while the user gesture is active.
+function unlockAudio(){
+  try {
+    const c=ctx();
+    const silent=c.createBufferSource();
+    silent.buffer=c.createBuffer(1,1,c.sampleRate);
+    silent.connect(c.destination);
+    silent.onended=()=>silent.disconnect();
+    silent.start(0);
+  } catch(e){}
 }
 function tone(freq, start, dur, gain=.08, type="sine"){
   try{
@@ -291,6 +302,7 @@ function tick(){
   }
 }
 async function begin(){
+  unlockAudio();
   showExercise(true);
   save(); build(); index=0; running=true; paused=false; app.classList.add("running");
   start.textContent="PAUSE"; await lockWake(); showCurrent();
@@ -301,6 +313,7 @@ function pause(){
   if(!paused){
     paused=true; remaining=Math.max(0,(endAt-Date.now())/1000); clearInterval(ticker); start.textContent="RESUME";
   } else {
+    unlockAudio();
     paused=false; endAt=Date.now()+remaining*1000; ticker=setInterval(tick,100); start.textContent="PAUSE";
   }
 }
