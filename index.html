@@ -7,61 +7,71 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>HIIT Timer</title>
 <style>
-:root { font-family: -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif; color-scheme:light dark; }
+:root { font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif; color-scheme:dark; background:#111; color:#fff; }
 * { box-sizing:border-box; }
-body { margin:0; min-height:100vh; display:flex; justify-content:center; background:#111; color:#fff; }
-main { width:min(680px,100%); padding:calc(20px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom)); }
-h1 { margin:0 0 18px; font-size:26px; }
-.settings { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.field { background:#1d1d1f; border-radius:16px; padding:12px; }
-.field label { display:block; font-size:13px; opacity:.7; margin-bottom:6px; }
-.field input { width:100%; font-size:26px; border:0; border-radius:10px; padding:8px 10px; background:#2c2c2e; color:#fff; }
-.field.rep { grid-column:1/-1; }
-.timer { text-align:center; padding:34px 0 24px; }
-.phase { font-size:34px; font-weight:800; letter-spacing:.04em; min-height:42px; }
-.time { font-variant-numeric:tabular-nums; font-size:clamp(86px,28vw,160px); line-height:1; font-weight:800; margin:10px 0; }
-.reptext { font-size:24px; min-height:30px; opacity:.8; }
-.progress { height:8px; border-radius:999px; background:#333; overflow:hidden; margin:22px 0 0; }
-.bar { height:100%; width:0%; background:currentColor; transition:width .15s linear; }
-.buttons { display:grid; grid-template-columns:2fr 1fr; gap:12px; }
-button { border:0; border-radius:18px; padding:18px 12px; font-size:22px; font-weight:750; }
-#start { background:#fff; color:#111; }
+body { margin:0; }
+[hidden] { display:none !important; }
+main { width:min(520px,100%); margin:auto; padding:calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom)); }
+h1 { margin:0; font-size:28px; letter-spacing:.06em; }
+.subtitle { color:#aaa; font-size:13px; margin:8px 0 24px; }
+.settings { display:grid; gap:12px; }
+.field { display:flex; align-items:center; justify-content:space-between; background:#1d1d1f; border:1px solid #303033; border-radius:20px; padding:12px 20px; }
+.field label { font-size:19px; font-weight:700; }
+.picker { position:relative; width:148px; height:144px; }
+.picker::before { content:""; position:absolute; pointer-events:none; inset:48px 0; border-radius:12px; background:#ffffff0c; border-block:1px solid #ffffff18; }
+.wheel { position:relative; height:144px; padding:48px 0; overflow-y:auto; overscroll-behavior-y:contain; scroll-snap-type:y mandatory; scrollbar-width:none; border-radius:12px; touch-action:pan-y; }
+.wheel::-webkit-scrollbar { display:none; }
+.wheel-option { height:48px; scroll-snap-align:center; display:flex; align-items:center; justify-content:center; padding-right:26px; font-size:25px; font-variant-numeric:tabular-nums; color:#777; cursor:pointer; }
+.wheel-option[aria-selected="true"] { color:#fff; font-size:32px; font-weight:750; }
+.unit { position:absolute; right:12px; top:64px; font-size:12px; color:#aaa; pointer-events:none; }
+button { width:100%; min-height:64px; border:0; border-radius:18px; padding:18px 12px; font:750 20px -apple-system,BlinkMacSystemFont,sans-serif; cursor:pointer; touch-action:manipulation; }
+button:focus-visible,.wheel:focus-visible { outline:3px solid #c4f477; outline-offset:4px; }
+#start,#pause { background:#c4f477; color:#17200b; }
+.launch { position:sticky; bottom:0; padding:18px 0 calc(8px + env(safe-area-inset-bottom)); background:linear-gradient(transparent,#111 18px); }
+.note { margin:12px 4px 0; font-size:12px; line-height:1.7; color:#999; }
+#exercise-screen { min-height:calc(100svh - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); display:flex; flex-direction:column; justify-content:space-between; }
+.exercise-heading { color:#aaa; letter-spacing:.15em; font-size:13px; }
+.timer { text-align:center; padding:40px 0; }
+.phase { font-size:clamp(28px,8vw,40px); font-weight:800; min-height:48px; }
+.time { font-variant-numeric:tabular-nums; font-size:clamp(76px,24vw,124px); line-height:1.1; font-weight:800; letter-spacing:-.06em; margin:18px 0; }
+.reptext { font-size:22px; min-height:30px; color:#bbb; }
+.progress { height:8px; border-radius:999px; background:#333; overflow:hidden; margin:32px 0 0; }
+.bar { height:100%; width:0%; background:#c4f477; transition:width .15s linear; }
+.buttons { display:grid; gap:12px; }
 #reset { background:#2c2c2e; color:#fff; }
-.note { margin-top:18px; font-size:13px; line-height:1.5; opacity:.55; text-align:center; }
-.running .settings { opacity:.35; pointer-events:none; }
+@media(prefers-reduced-motion:reduce) { .bar { transition:none; } }
 </style>
 </head>
 <body>
 <main id="app">
-<h1>HIIT Timer</h1>
-
-<section class="settings">
-  <div class="field"><label>前休憩（秒）</label><input id="pre" type="number" min="0" max="600" value="30"></div>
-  <div class="field"><label>あと休憩（秒）</label><input id="post" type="number" min="0" max="600" value="60"></div>
-  <div class="field"><label>HIIT（秒）</label><input id="work" type="number" min="1" max="600" value="30"></div>
-  <div class="field"><label>REST（秒）</label><input id="rest" type="number" min="0" max="600" value="30"></div>
-  <div class="field rep"><label>REP（回）</label><input id="reps" type="number" min="1" max="99" value="6"></div>
+<section id="settings-screen" aria-label="タイマー設定">
+<h1>HIIT TIMER</h1>
+<p class="subtitle">上下にスワイプして時間と回数を設定</p>
+<div class="settings"><div class="field"><label id="pre-label">前休憩</label><input id="pre" type="hidden" value="30" data-max="60"><div class="picker"><div class="wheel" id="pre-wheel" role="listbox" tabindex="0" aria-labelledby="pre-label"></div><span class="unit" aria-hidden="true">sec</span></div></div>
+<div class="field"><label id="work-label">HIIT</label><input id="work" type="hidden" value="30" data-max="60"><div class="picker"><div class="wheel" id="work-wheel" role="listbox" tabindex="0" aria-labelledby="work-label"></div><span class="unit" aria-hidden="true">sec</span></div></div>
+<div class="field"><label id="rest-label">REST</label><input id="rest" type="hidden" value="30" data-max="60"><div class="picker"><div class="wheel" id="rest-wheel" role="listbox" tabindex="0" aria-labelledby="rest-label"></div><span class="unit" aria-hidden="true">sec</span></div></div>
+<div class="field"><label id="post-label">あと休憩</label><input id="post" type="hidden" value="60" data-max="60"><div class="picker"><div class="wheel" id="post-wheel" role="listbox" tabindex="0" aria-labelledby="post-label"></div><span class="unit" aria-hidden="true">sec</span></div></div>
+<div class="field"><label id="reps-label">REP</label><input id="reps" type="hidden" value="6" data-max="20"><div class="picker"><div class="wheel" id="reps-wheel" role="listbox" tabindex="0" aria-labelledby="reps-label"></div><span class="unit" aria-hidden="true">回</span></div></div>
+</div>
+<p class="note">音・振動は端末設定やブラウザの仕様により動作が異なります。画面を表示したまま使うのがおすすめです。</p>
+<div class="launch"><button id="start">START</button></div>
 </section>
-
-<section class="timer">
-  <div class="phase" id="phase">READY</div>
-  <div class="time" id="time">0:30</div>
-  <div class="reptext" id="reptext">REP 0 / 6</div>
-  <div class="progress"><div class="bar" id="bar"></div></div>
+<section id="exercise-screen" aria-label="運動タイマー" hidden>
+<div class="exercise-heading">HIIT TIMER</div>
+<div class="timer">
+<div class="phase" id="phase" aria-live="polite">READY</div>
+<div class="time" id="time">0:30</div>
+<div class="reptext" id="reptext">REP 0 / 6</div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+</div>
+<div class="buttons"><button id="pause">PAUSE</button><button id="reset">RESET</button></div>
 </section>
-
-<section class="buttons">
-  <button id="start">START</button>
-  <button id="reset">RESET</button>
-</section>
-
-<div class="note">音・振動は端末設定やブラウザの仕様により動作が異なります。画面を表示したまま使うのがおすすめです。</div>
 </main>
 
 <script>
 const ids = ["pre","post","work","rest","reps"];
 const $ = id => document.getElementById(id);
-const app=$("app"), phase=$("phase"), time=$("time"), reptext=$("reptext"), bar=$("bar"), start=$("start");
+const app=$("app"), phase=$("phase"), time=$("time"), reptext=$("reptext"), bar=$("bar"), start=$("pause");
 let sequence=[], index=0, remaining=0, total=0, ticker=null, running=false, paused=false, wakeLock=null, endAt=0, lastBeepSecond=null;
 
 function val(id){ return Math.max(0, parseInt($(id).value||0,10)); }
@@ -102,22 +112,29 @@ function ctx(){
 function tone(freq, start, dur, gain=.08, type="sine"){
   try{
     const c=ctx(), o=c.createOscillator(), g=c.createGain();
-    o.type=type; o.frequency.setValueAtTime(freq,c.currentTime+start);
-    g.gain.setValueAtTime(gain,c.currentTime+start);
-    g.gain.exponentialRampToValueAtTime(.001,c.currentTime+start+dur);
-    o.connect(g); g.connect(c.destination);
-    o.start(c.currentTime+start); o.stop(c.currentTime+start+dur);
+    const t0 = c.currentTime + start;
+    const fade = 0.02;
+
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t0);
+
+    // MP3版に近い：ほぼ一定音量 → 最後だけ短く消える
+    g.gain.setValueAtTime(gain, t0);
+    g.gain.setValueAtTime(gain, Math.max(t0, t0 + dur - fade));
+    g.gain.linearRampToValueAtTime(0, t0 + dur);
+
+    o.connect(g);
+    g.connect(c.destination);
+
+    o.start(t0);
+    o.stop(t0 + dur);
   }catch(e){}
 }
 function pip(){
-  tone(1050,0,.10,.07,"sine");
+  tone(1000, 0, 0.10, 0.88, "sine");
 }
 function gong(){
-  // Gong-like synthesized chime; no external audio file required.
-  tone(196,0,1.25,.13,"sine");
-  tone(294,0,1.05,.07,"sine");
-  tone(392,0,0.85,.04,"sine");
-  if(navigator.vibrate) navigator.vibrate(160);
+  tone(2000, 0, 1.50, 0.88, "sine");
 }
 async function lockWake(){
   try{ if("wakeLock" in navigator) wakeLock=await navigator.wakeLock.request("screen"); }catch(e){}
@@ -125,11 +142,19 @@ async function lockWake(){
 function showCurrent(){
   const s=sequence[index];
   if(!s){ finish(); return; }
-  total=s.sec; remaining=s.sec; lastBeepSecond=null; endAt=Date.now()+remaining*1000;
+
+  total=s.sec;
+  remaining=s.sec;
+  lastBeepSecond=null;
+  endAt=Date.now()+remaining*1000;
+
   phase.textContent=s.name;
   reptext.textContent=`REP ${s.rep} / ${Math.max(1,val("reps"))}`;
-  time.textContent=fmt(remaining); bar.style.width="0%";
-  gong();
+  time.textContent=fmt(remaining);
+  bar.style.width="0%";
+
+  // 最初のフェーズ開始時だけ鳴らさない
+  if(index > 0) gong();
 }
 function tick(){
   remaining=Math.max(0,(endAt-Date.now())/1000);
@@ -145,6 +170,7 @@ function tick(){
   }
 }
 async function begin(){
+  showExercise(true);
   save(); build(); index=0; running=true; paused=false; app.classList.add("running");
   start.textContent="PAUSE"; await lockWake(); showCurrent();
   clearInterval(ticker); ticker=setInterval(tick,100);
@@ -166,13 +192,68 @@ function finish(){
 function reset(){
   clearInterval(ticker); ticker=null; running=false; paused=false; index=0; app.classList.remove("running");
   start.textContent="START"; if(wakeLock){ try{wakeLock.release();}catch(e){} wakeLock=null; }
+  showExercise(false);
   renderReady();
 }
+$("start").addEventListener("click",()=>{ syncWheels(); begin(); });
 start.addEventListener("click",()=> running ? pause() : begin());
 $("reset").addEventListener("click",reset);
 ids.forEach(id=>$(id).addEventListener("input",()=>{save(); if(!running) renderReady();}));
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && running && !paused) lockWake(); });
-load(); renderReady();
+const wheels=[];
+function showExercise(active){
+  $("settings-screen").hidden=active;
+  $("exercise-screen").hidden=!active;
+  if(!active) wheels.forEach(({id,wheel})=>{ wheel.scrollTop=(val(id)-1)*48; });
+  (active ? start : $("start")).focus({preventScroll:true});
+  window.scrollTo(0,0);
+}
+function selectWheel(id,wheel,value){
+  $(id).value=value;
+  for(const option of wheel.children) option.setAttribute("aria-selected",String(Number(option.dataset.value)===value));
+  wheel.setAttribute("aria-activedescendant",`${id}-option-${value}`);
+}
+function syncWheels(){
+  wheels.forEach(({id,wheel,max})=>selectWheel(id,wheel,Math.max(1,Math.min(max,Math.round(wheel.scrollTop/48)+1))));
+}
+function setupWheels(){
+  ids.forEach(id=>{
+    const wheel=$(id+"-wheel"), max=Number($(id).dataset.max);
+    const value=Math.max(1,Math.min(max,val(id)));
+    for(let n=1;n<=max;n++){
+      const option=document.createElement("div");
+      option.className="wheel-option"; option.id=`${id}-option-${n}`;
+      option.setAttribute("role","option"); option.dataset.value=n; option.textContent=n;
+      wheel.appendChild(option);
+    }
+    selectWheel(id,wheel,value);
+    wheel.scrollTop=(value-1)*48;
+    wheels.push({id,wheel,max});
+    wheel.addEventListener("scroll",()=>{
+      if($("settings-screen").hidden) return;
+      const next=Math.max(1,Math.min(max,Math.round(wheel.scrollTop/48)+1));
+      if(next!==val(id)){ selectWheel(id,wheel,next); save(); if(!running) renderReady(); }
+    },{passive:true});
+    function move(next){
+      next=Math.max(1,Math.min(max,next));
+      selectWheel(id,wheel,next); wheel.scrollTop=(next-1)*48; save(); renderReady();
+    }
+    wheel.addEventListener("click",event=>{
+      const option=event.target.closest(".wheel-option");
+      if(option) move(Number(option.dataset.value));
+    });
+    wheel.addEventListener("keydown",event=>{
+      let next=val(id);
+      if(event.key==="ArrowDown") next++;
+      else if(event.key==="ArrowUp") next--;
+      else if(event.key==="Home") next=1;
+      else if(event.key==="End") next=max;
+      else return;
+      event.preventDefault(); move(next);
+    });
+  });
+}
+load(); setupWheels(); renderReady();
 </script>
 </body>
 </html>
