@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>HIIT Timer</title>
+<style>
+:root { font-family: -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif; color-scheme:light dark; }
+* { box-sizing:border-box; }
+body { margin:0; min-height:100vh; display:flex; justify-content:center; background:#111; color:#fff; }
+main { width:min(680px,100%); padding:calc(20px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom)); }
+h1 { margin:0 0 18px; font-size:26px; }
+.settings { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.field { background:#1d1d1f; border-radius:16px; padding:12px; }
+.field label { display:block; font-size:13px; opacity:.7; margin-bottom:6px; }
+.field input { width:100%; font-size:26px; border:0; border-radius:10px; padding:8px 10px; background:#2c2c2e; color:#fff; }
+.field.rep { grid-column:1/-1; }
+.timer { text-align:center; padding:34px 0 24px; }
+.phase { font-size:34px; font-weight:800; letter-spacing:.04em; min-height:42px; }
+.time { font-variant-numeric:tabular-nums; font-size:clamp(86px,28vw,160px); line-height:1; font-weight:800; margin:10px 0; }
+.reptext { font-size:24px; min-height:30px; opacity:.8; }
+.progress { height:8px; border-radius:999px; background:#333; overflow:hidden; margin:22px 0 0; }
+.bar { height:100%; width:0%; background:currentColor; transition:width .15s linear; }
+.buttons { display:grid; grid-template-columns:2fr 1fr; gap:12px; }
+button { border:0; border-radius:18px; padding:18px 12px; font-size:22px; font-weight:750; }
+#start { background:#fff; color:#111; }
+#reset { background:#2c2c2e; color:#fff; }
+.note { margin-top:18px; font-size:13px; line-height:1.5; opacity:.55; text-align:center; }
+.running .settings { opacity:.35; pointer-events:none; }
+</style>
+</head>
+<body>
+<main id="app">
+<h1>HIIT Timer</h1>
+
+<section class="settings">
+  <div class="field"><label>前休憩（秒）</label><input id="pre" type="number" min="0" max="600" value="30"></div>
+  <div class="field"><label>あと休憩（秒）</label><input id="post" type="number" min="0" max="600" value="60"></div>
+  <div class="field"><label>HIIT（秒）</label><input id="work" type="number" min="1" max="600" value="30"></div>
+  <div class="field"><label>REST（秒）</label><input id="rest" type="number" min="0" max="600" value="30"></div>
+  <div class="field rep"><label>REP（回）</label><input id="reps" type="number" min="1" max="99" value="6"></div>
+</section>
+
+<section class="timer">
+  <div class="phase" id="phase">READY</div>
+  <div class="time" id="time">0:30</div>
+  <div class="reptext" id="reptext">REP 0 / 6</div>
+  <div class="progress"><div class="bar" id="bar"></div></div>
+</section>
+
+<section class="buttons">
+  <button id="start">START</button>
+  <button id="reset">RESET</button>
+</section>
+
+<div class="note">音・振動は端末設定やブラウザの仕様により動作が異なります。画面を表示したまま使うのがおすすめです。</div>
+</main>
+
+<script>
+const ids = ["pre","post","work","rest","reps"];
+const $ = id => document.getElementById(id);
+const app=$("app"), phase=$("phase"), time=$("time"), reptext=$("reptext"), bar=$("bar"), start=$("start");
+let sequence=[], index=0, remaining=0, total=0, ticker=null, running=false, paused=false, wakeLock=null, endAt=0, lastBeepSecond=null;
+
+function val(id){ return Math.max(0, parseInt($(id).value||0,10)); }
+function fmt(s){ s=Math.max(0,Math.ceil(s)); return `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`; }
+
+function save(){
+  const o={}; ids.forEach(id=>o[id]=$(id).value);
+  localStorage.setItem("hiit-settings",JSON.stringify(o));
+}
+function load(){
+  try {
+    const o=JSON.parse(localStorage.getItem("hiit-settings")||"{}");
+    ids.forEach(id=>{ if(o[id]!=null) $(id).value=o[id]; });
+  } catch(e){}
+}
+function build(){
+  sequence=[];
+  const pre=val("pre"), post=val("post"), work=val("work"), rest=val("rest"), reps=Math.max(1,val("reps"));
+  if(pre>0) sequence.push({name:"前休憩",sec:pre,rep:0});
+  for(let r=1;r<=reps;r++){
+    sequence.push({name:"HIIT",sec:work,rep:r});
+    if(rest>0 && r<reps) sequence.push({name:"REST",sec:rest,rep:r});
+  }
+  if(post>0) sequence.push({name:"あと休憩",sec:post,rep:reps});
+}
+function renderReady(){
+  phase.textContent="READY";
+  time.textContent=fmt(val("pre") || val("work"));
+  reptext.textContent=`REP 0 / ${Math.max(1,val("reps"))}`;
+  bar.style.width="0%";
+}
+let audioCtx=null;
+function ctx(){
+  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==="suspended") audioCtx.resume();
+  return audioCtx;
+}
+function tone(freq, start, dur, gain=.08, type="sine"){
+  try{
+    const c=ctx(), o=c.createOscillator(), g=c.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,c.currentTime+start);
+    g.gain.setValueAtTime(gain,c.currentTime+start);
+    g.gain.exponentialRampToValueAtTime(.001,c.currentTime+start+dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(c.currentTime+start); o.stop(c.currentTime+start+dur);
+  }catch(e){}
+}
+function pip(){
+  tone(1050,0,.10,.07,"sine");
+}
+function gong(){
+  // Gong-like synthesized chime; no external audio file required.
+  tone(196,0,1.25,.13,"sine");
+  tone(294,0,1.05,.07,"sine");
+  tone(392,0,0.85,.04,"sine");
+  if(navigator.vibrate) navigator.vibrate(160);
+}
+async function lockWake(){
+  try{ if("wakeLock" in navigator) wakeLock=await navigator.wakeLock.request("screen"); }catch(e){}
+}
+function showCurrent(){
+  const s=sequence[index];
+  if(!s){ finish(); return; }
+  total=s.sec; remaining=s.sec; lastBeepSecond=null; endAt=Date.now()+remaining*1000;
+  phase.textContent=s.name;
+  reptext.textContent=`REP ${s.rep} / ${Math.max(1,val("reps"))}`;
+  time.textContent=fmt(remaining); bar.style.width="0%";
+  gong();
+}
+function tick(){
+  remaining=Math.max(0,(endAt-Date.now())/1000);
+  time.textContent=fmt(remaining);
+  const sec=Math.ceil(remaining);
+  if(sec>=1 && sec<=3 && sec!==lastBeepSecond){
+    lastBeepSecond=sec; pip();
+  }
+  bar.style.width=`${Math.min(100,100*(total-remaining)/Math.max(1,total))}%`;
+  if(remaining<=0.02){
+    index++;
+    showCurrent();
+  }
+}
+async function begin(){
+  save(); build(); index=0; running=true; paused=false; app.classList.add("running");
+  start.textContent="PAUSE"; await lockWake(); showCurrent();
+  clearInterval(ticker); ticker=setInterval(tick,100);
+}
+function pause(){
+  if(!running) return;
+  if(!paused){
+    paused=true; remaining=Math.max(0,(endAt-Date.now())/1000); clearInterval(ticker); start.textContent="RESUME";
+  } else {
+    paused=false; endAt=Date.now()+remaining*1000; ticker=setInterval(tick,100); start.textContent="PAUSE";
+  }
+}
+function finish(){
+  clearInterval(ticker); ticker=null; running=false; paused=false; app.classList.remove("running");
+  phase.textContent="FINISH"; time.textContent="0:00"; reptext.textContent="完了"; bar.style.width="100%";
+  start.textContent="START"; gong(); if(navigator.vibrate) navigator.vibrate([150,100,150]);
+  if(wakeLock){ try{wakeLock.release();}catch(e){} wakeLock=null; }
+}
+function reset(){
+  clearInterval(ticker); ticker=null; running=false; paused=false; index=0; app.classList.remove("running");
+  start.textContent="START"; if(wakeLock){ try{wakeLock.release();}catch(e){} wakeLock=null; }
+  renderReady();
+}
+start.addEventListener("click",()=> running ? pause() : begin());
+$("reset").addEventListener("click",reset);
+ids.forEach(id=>$(id).addEventListener("input",()=>{save(); if(!running) renderReady();}));
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && running && !paused) lockWake(); });
+load(); renderReady();
+</script>
+</body>
+</html>
